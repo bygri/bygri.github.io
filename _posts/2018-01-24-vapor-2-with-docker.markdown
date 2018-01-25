@@ -44,7 +44,7 @@ You'll first need a development Dockerfile. I name mine, creatively, `Dockerfile
 Here's an example file:
 
 {% highlight Docker %}
-FROM swift:4.0.3\
+FROM swift:4.0.3
 RUN apt-get -qq update && apt-get -q -y install \
   your-dependencies-here # e.g. libmysqlclient-dev libpq-dev etc
 WORKDIR /app
@@ -139,7 +139,7 @@ docker build -t myproject:1.0.0 .
 You can launch it locally using:
 
 ```
-docker run myproject:1.0.0
+docker run -p 8080:8080 myproject:1.0.0
 ```
 
 I will not cover deployment here. You will probably want to use `docker push` to send the image to a container registry, and then use `docker-compose`, Docker Swarm or Kubernetes to schedule your containers on your servers. You can even set up CI to build and test your production image on every commit. There is plenty of information out there on how to do this.
