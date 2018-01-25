@@ -118,8 +118,8 @@ COPY Resources/ ./Resources/ # if you have Resources
 COPY Public/ ./Public/ # if you have Public
 COPY --from=builder /build/bin/myappbinary .
 COPY --from=builder /build/lib/* /usr/lib/
-EXPOSE 8080
-CMD ["./myappbinary", "--hostname", "0.0.0.0"]
+EXPOSE 80
+CMD ["./myappbinary", "--env", "production", "--hostname", "0.0.0.0"]
 {% endhighlight %}
 
 Let's break that down. The first block of lines looks very much like your development Dockerfile. It's creating a build image, naming it `builder`, and installing your build dependencies. Then it copies your project folder into the image.
@@ -130,9 +130,7 @@ The second block of lines is where your production image gets built. First, it p
 
 Following this, it copies your `Config`, `Resources` and `Public` directories directly into the image. Add or remove directories as required. The last two `COPY` lines pull the Swift libraries and your app binary from the builder image.
 
-Finally, port 8080 is opened and your app is told to run when the image is launched.
-
-> Beta note! At time of writing, setting `--env production` causes your Vapor app to not respond to incoming connections, so this flag is not set in the Dockerfile.
+Finally, port 80 is opened and your app is told to run in production mode when the image is launched.
 
 Make sure you change `myappbinary` to the actual name of your binary. If using a Vapor template, it will be called `Run` by default.
 
@@ -147,7 +145,7 @@ docker build -t myproject:1.0.0 .
 You can launch it locally using:
 
 ```
-docker run -p 8080:8080 myproject:1.0.0
+docker run -p 80:80 myproject:1.0.0
 ```
 
 I will not cover deployment here. You will probably want to use `docker push` to send the image to a container registry, and then use `docker-compose`, Docker Swarm or Kubernetes to schedule your containers on your servers. You can even set up CI to build and test your production image on every commit. There is plenty of information out there on how to do this.
