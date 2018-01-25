@@ -1,0 +1,3 @@
+# docker build -t bygri.github.io:dev -f Dockerfile-dev . && docker run -it -p 4000:4000 -v "$PWD":/srv/jekyll bygri.github.io:dev bash
+
+FROM jekyll/builder

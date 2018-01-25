@@ -1,0 +1,14 @@
+title: bygri
+description: >-
+  Tech by bygri
+baseurl: ""
+url: "https://bygri.github.io"
+github_username:  bygri
+
+markdown: kramdown
+theme: minima
+
+exclude:
+  - Dockerfile-dev
+  - Gemfile
+  - Gemfile.lock
