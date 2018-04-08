@@ -3,9 +3,11 @@ layout: post
 title:  "Vapor 3 with Docker"
 date:   2018-01-25 09:00:00 +1100
 ---
-[Vapor][vapor-home] is a development framework for servers written in Swift (often known as server-side Swift). In this tutorial, I'll be using a recent **beta** release of Vapor 3, which is commit `24e6640`, 19th January 2018, and Swift 4.0.3.
+*Updated 9th April 2018.*
 
-[Docker][docker-home] is a comprehensive yet simple containerisation system. In addition to the performance benefits from using light-weight containers instead of heavy-weight VMs, a key benefit to containerisation is that you can easily run the same container in development as you will in production. I'll be using Docker Community Edition, version 17.12.0 on MacOS.
+[Vapor][vapor-home] is a development framework for servers written in Swift (often known as server-side Swift). In this tutorial, I'll be Vapor 3 RC 2.2.2 and Swift 4.1.
+
+[Docker][docker-home] is a comprehensive yet simple containerisation system. In addition to the performance benefits from using light-weight containers instead of heavy-weight VMs, a key benefit to containerisation is that you can easily run the same container in development as you will in production. I'll be using Docker Community Edition, version 18.03.0 on macOS.
 
 There's two particular reasons to use Docker with server-side Swift.
 
@@ -28,13 +30,13 @@ You'll need, of course, a Vapor project. Here's two ways to do it.
 Using Swift Package Manager (creates project in current directory, you'll need to add Vapor to your `Package.swift` manually):
 
 ```
-docker run -v "$PWD":/app -w /app swift:4.0.3 swift package init --type executable
+docker run -v "$PWD":/app -w /app swift:4.1 swift package init --type executable
 ```
 
 Using Vapor Toolbox (creates project in subdirectory named `project_name`):
 
 ```
-docker run -v "$PWD":/app -w /app vapor/toolbox:3.1.2 vapor new [project_name] --template=api --branch=beta
+docker run -v "$PWD":/app -w /app vapor/toolbox:3.1.2 vapor new [project_name] --branch=beta
 ```
 
 ### Setting up your development image
@@ -44,7 +46,7 @@ You'll first need a development Dockerfile. I name mine, creatively, `Dockerfile
 Here's an example file:
 
 {% highlight Docker %}
-FROM swift:4.0.3
+FROM swift:4.1
 RUN apt-get -qq update && apt-get -q -y install \
   your-dependencies-here # e.g. libmysqlclient-dev libpq-dev etc
 WORKDIR /app
@@ -76,11 +78,10 @@ root@87b9684095a6:/app#
 
 You're now sitting in a `bash` terminal inside your development container. Congratulations! You can begin working on your project, using `swift build`, `swift test` and `swift run` to build, test and run.
 
-> Beta note! At time of writing, you need to tell your binary to listen on `0.0.0.0`. So, to run your app, use the following command, assuming your binary is named `Run`:
+> Note! At time of writing, you need to tell your binary to listen on `0.0.0.0`. So, to run your app, use the following command, assuming your binary is named `Run`:
 ```
 swift run Run serve --hostname 0.0.0.0
 ```
-> Also, don't worry about start-up errors of the sort `Server Error: TCP.TCPError.accept: Invalid argument (TCPServer.swift:146)` as they don't appear to cause issues.
 
 Using Xcode? Then by all means build as you go in Xcode (it's faster than building in Linux) but don't forget to build and test in your container from time to time, and you should always run from it. Xcode and Linux use different build directories, so always `swift build` before you `swift run` to ensure your Linux build is up-to-date.
 
@@ -98,7 +99,7 @@ Create a file called `Dockerfile` with contents similar to the below.
 
 {% highlight Docker %}
 # Build image
-FROM swift:4.0.3 as builder
+FROM swift:4.1 as builder
 RUN apt-get -qq update && apt-get -q -y install \
   your-dependencies-here # e.g. libmysqlclient-dev
 WORKDIR /app
@@ -113,13 +114,12 @@ RUN apt-get -qq update && apt-get install -y \
   your-release-dependencies-here \ # e.g. libmysqlclient20
   && rm -r /var/lib/apt/lists/*
 WORKDIR /app
-COPY Config/ ./Config/
-COPY Resources/ ./Resources/ # if you have Resources
-COPY Public/ ./Public/ # if you have Public
+COPY Resources/ ./Resources/
+COPY Public/ ./Public/
 COPY --from=builder /build/bin/myappbinary .
 COPY --from=builder /build/lib/* /usr/lib/
-EXPOSE 80
-CMD ["./myappbinary", "--env", "production", "--hostname", "0.0.0.0"]
+EXPOSE 8080
+CMD ["./myappbinary", "serve", "--env", "production", "--hostname", "0.0.0.0"]
 {% endhighlight %}
 
 Let's break that down. The first block of lines looks very much like your development Dockerfile. It's creating a build image, naming it `builder`, and installing your build dependencies. Then it copies your project folder into the image.
@@ -128,11 +128,16 @@ After that, it creates a folder `/build` inside that image, to store files that 
 
 The second block of lines is where your production image gets built. First, it pulls a standard Ubuntu 16.04 image, and then installs Swift's standard dependencies plus your own. The `&& rm -r /var/lib/apt/lists/*` line is a standard Docker optimisation that removes apt's install cache to save on space. Note that you'll need to keep the `\` at end of line after adding your dependencies.
 
-Following this, it copies your `Config`, `Resources` and `Public` directories directly into the image. Add or remove directories as required. The last two `COPY` lines pull the Swift libraries and your app binary from the builder image.
+Following this, it copies your `Resources` and `Public` directories directly into the image. Add or remove directories as required. The last two `COPY` lines pull the Swift libraries and your app binary from the builder image.
 
-Finally, port 80 is opened and your app is told to run in production mode when the image is launched.
+Finally, port 8080 is opened and your app is told to run in production mode when the image is launched.
 
 Make sure you change `myappbinary` to the actual name of your binary. If using a Vapor template, it will be called `Run` by default.
+
+> Note! If you're running the Vapor 3 template starter project directly, it requires you to set an environment variable `SQLITE_PATH` when running in production mode. So add this line after `EXPOSE` in your Dockerfile:
+```
+ENV SQLITE_PATH sqlite.db
+```
 
 ### Building your production image
 
@@ -166,7 +171,7 @@ At the top of each of my developmental Dockerfiles, I put the launch command in 
 
 {% highlight Docker %}
 # docker build -t myproject:dev -f Dockerfile-dev . && docker run -it -p 8080:8080 -v "$PWD":/app --privileged --rm myproject:dev
-FROM swift:4.0.3
+FROM swift:4.1
 …
 {% endhighlight %}
 
