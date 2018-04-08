@@ -5,7 +5,7 @@ date:   2018-01-25 09:00:00 +1100
 ---
 [Vapor][vapor-home] is a development framework for servers written in Swift (often known as server-side Swift). In this tutorial, I'll be using the latest release of Vapor 2, which is 2.4.3, and Swift 4.0.3.
 
-[Docker][docker-home] is a comprehensive yet simple containerisation system. In addition to the performance benefits from using light-weight containers instead of heavy-weight VMs, a key benefit to containerisation is that you can easily run the same container in development as you will in production. I'll be using Docker Community Edition, version 17.12.0 on MacOS.
+[Docker][docker-home] is a comprehensive yet simple containerisation system. In addition to the performance benefits from using light-weight containers instead of heavy-weight VMs, a key benefit to containerisation is that you can easily run the same container in development as you will in production. I'll be using Docker Community Edition, version 17.12.0 on macOS.
 
 There's two particular reasons to use Docker with server-side Swift.
 
