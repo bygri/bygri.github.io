@@ -6,8 +6,12 @@ url: "https://bygri.github.io"
 github_username:  bygri
 google_analytics: UA-113082283-1
 
-markdown: kramdown
 theme: minima
+
+markdown: kramdown
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
 
 exclude:
   - Dockerfile-dev

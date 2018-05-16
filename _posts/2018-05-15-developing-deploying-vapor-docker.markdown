@@ -42,7 +42,7 @@ In Docker, a *container* is a running instance of an *image*. When building an i
 
 To keep it separate from your production Dockerfile later on, let's call it `Dockerfile-dev`.
 
-```Dockerfile
+```docker
 FROM swift:4.1
 RUN apt-get -qq update && apt-get -q -y install \
   libmysqlclient-dev \
@@ -61,7 +61,7 @@ Now we need to tell Docker that we're going to build up a stack of services: one
 
 To do this we define a [Compose file][docker-compose-ref], which is in YAML format. I don't tend to store production Compose files within a Vapor project, so I just call mine `docker-compose.yml`.
 
-```YAML
+```yml
 version: "3.3"
 services:
   api:
@@ -103,7 +103,7 @@ This simple Compose file defines the three services, named `api`, `db` and `redi
 
 Let's do a trial run. From inside your project directory, run:
 
-```Shell
+```bash
 docker-compose up --build
 ```
 
@@ -117,7 +117,7 @@ Great! Now what? Well, nothing, because we don't have a Vapor application yet.
 
 Take another look at our Compose file, in particular these parts of the definition of the Vapor `api` service:
 
-```YAML
+```yml
 ports:
   - "8080:8080"
 volumes:
@@ -142,7 +142,7 @@ If you still have your Docker stack running (see previous section), your `api` c
 
 First, let's find out the random identifier that Docker assigned. Enter `docker ps` to see a list of running containers. It should look like this:
 
-```Shell
+```bash
 $ docker ps
 CONTAINER ID        IMAGE               COMMAND
 9629527e3434        api:dev             "bash"
@@ -152,7 +152,7 @@ CONTAINER ID        IMAGE               COMMAND
 
 The one named `api:dev` is the one we want. We use the `docker attach` command to attach to it (press return twice after the command).
 
-```Shell
+```bash
 $ docker attach 9629
 root@9629527e3434:/app#
 ```
@@ -167,7 +167,7 @@ You'll need, of course, a Vapor project. For the purposes of proceeding with thi
 
 This should be your `Package.swift`:
 
-```Swift
+```swift
 // swift-tools-version:4.0
 import PackageDescription
 
@@ -184,7 +184,7 @@ let package = Package(
 
 And this should be `Sources/Run/main.swift`:
 
-```Swift
+```swift
 import Vapor
 
 var services = Services.default()
@@ -205,7 +205,7 @@ try Application(
 
 When you're doing this for real, if you've installed Vapor's Toolbox, you can use [that method][toolbox-project-new] from your Mac, or you can use your new Swift container to do it! Run the below from the bash prompt you just attached to:
 
-```Shell
+```bash
 swift package init --type executable
 ```
 
@@ -232,7 +232,7 @@ swift run Run serve -b 0.0.0.0
 
 If you want, you can write a file of SQL commands that will be executed when the MySQL container is launched. Add the following key to the `db` service in your Compose file:
 
-```YAML
+```yml
 volumes:
   - ./fixtures.sql:/docker-entrypoint-initdb.d/init.sql
 ```
@@ -261,7 +261,7 @@ A central tenet of containerisation is that your production image should be as s
 
 Make a new file called just `Dockerfile`. This is your production image build recipe.
 
-```Dockerfile
+```docker
 # Build image
 FROM swift:4.1 as builder
 RUN apt-get -qq update && apt-get -q -y install \
@@ -293,13 +293,13 @@ The second section pulls a clean Ubuntu 16.04 image, which is only about 200MB, 
 
 We've declared our production Dockerfile, now we just need to tell Docker to build it. Docker images are tagged as `name:version`. For example, the first version of your awesome app could be tagged `myawesomeapp:1.0.0`. Let's build and tag our app:
 
-```Shell
+```bash
 docker build -t myawesomeapp:1.0.0 .
 ```
 
 Done. We now have an entirely self-contained image of a Vapor app that we can run at will. Let's do it:
 
-```Shell
+```bash
 docker run -p 8080:8080 myawesomeapp:1.0.0
 ```
 
@@ -309,7 +309,7 @@ You should now be able to reach your running app at `localhost:8080`. Note that 
 
 To give you an indication of how our production image slots into a Compose file, see below. The `api` service no longer has a build step, it simply pulls an image like `db` and `redis` do, opens a port, and configures environment variables.
 
-```YAML
+```yml
 version: "3.3"
 services:
   api:
@@ -334,7 +334,7 @@ services:
 
 If you want to save this file, don't overwrite the development one, save it in a different folder or give it a different name, say `docker-compose-prod.yml`. You can test it out with:
 
-```Shell
+```bash
 docker-compose -f docker-compose-prod.yml up --build
 ```
 
@@ -348,7 +348,7 @@ We took our Vapor app and created a Dockerfile to turn it into a containerised i
 
 ## Wrap up
 
-That was a fairly comprehensive look at Docker throughout the application development lifecycle: from breaking ground on a new project, to building, testing and releasing to production. If you're feeling overwhelmed, or have any questions to ask or improvements to suggest, drop into the #docker channel on the [Vapor Discord server][vapor-discord]. You'll find me there too, under `@bygri`. I'm very happy to receive feedback and improvements to this article.
+That was a fairly comprehensive look at Docker throughout the application development lifecycle: from breaking ground on a new project, to building, testing and releasing to production. If you're feeling overwhelmed, or have any questions to ask or improvements to suggest, drop into the `#docker` channel on the [Vapor Discord server][vapor-discord]. You'll find me there too, under `@bygri`. I'm very happy to receive feedback and improvements to this article.
 
 Thanks for reading!
 
