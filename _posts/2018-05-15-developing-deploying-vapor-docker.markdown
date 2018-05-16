@@ -317,7 +317,7 @@ services:
     ports:
       - 80:8080
     environment:
-	    MYSQL_HOST: db
+      MYSQL_HOST: db
       MYSQL_USER: prod_user
       MYSQL_PASSWORD: secretpw
       MYSQL_DATABASE: prod
