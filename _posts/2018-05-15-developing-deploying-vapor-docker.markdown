@@ -13,7 +13,7 @@ Docker is an easy yet comprehensive implementation of containerisation. Containe
 
 Containerisation has entirely different benefits in development and in production. I'll start with production, because that's where the benefits are most intuitive.
 
-Even a fairly straightforward modern web application generally requires several moving parts. You'll have your API, in this case built in Vapor. It may have any of the following: a front-end website, a database, a memory cache, a message platform, a search provider, logging and analytics. A container scheduler like Docker's Swarm mode allows you to use a single YAML file to define your application as a series of linked containers, and then deploy it to your hosting infrastructure. As there is no one-to-one mapping between physical servers and services, scaling your application is as simple as changing a number and re-deploying.
+Even a fairly straightforward modern web application generally requires several moving parts. You'll have your API, in this case built in Vapor. It may have any of the following: a front-end website, a database, a memory cache, a message platform, a search provider, logging and analytics. A container scheduler like [Docker's Swarm mode][docker-swarm-overview] allows you to use a single YAML file to define your application as a series of linked containers, and then deploy it to your hosting infrastructure. As there is no one-to-one mapping between physical servers and services, scaling your application is as simple as changing a number and re-deploying.
 
 Now, since you are going to eventually define your production environment in terms of containers and services—why not do the same thing in development, too? Why not develop and test your application with all those other dependent services already in place? Docker lets you essentially replicate your production environment right on your desktop, without messing up your host operating system. Then when you deploy, it's simply a matter of scaling up.
 
@@ -25,7 +25,12 @@ We are going to build one trivial Vapor application with a couple of linked serv
 
 > Note! We will not be using Xcode to build and run. You can code in Xcode to take advantage of auto-complete, but we will be building, running and testing from *inside* a Linux container. This is so that our Vapor application can talk to the other containers as we go. But also, remember what I said about replicating our production environment? We're eventually going to end up on Linux. Why not start there?
 
-You'll be spending much of your time at the command line, so here's a quick primer on the commands we'll use. `swift package init` creates a new project. `swift build`, `swift test` and `swift run` do what you would expect, mirroring Xcode's commands. `docker-compose up` and `docker-compose down` will launch or remove a defined stack of linked services. `docker build` and `docker run` build and run a single container image, so we won't be using those very much, but `docker exec` performs a command inside an already-running container, so that'll be our primary method of interacting with Docker during development.
+You'll be spending much of your time at the command line, so here's a quick primer on the commands we'll use.
+
+* `swift package init` creates a new project. You can also use the [Vapor Toolbox][toolbox-project-new] to do this.
+* `swift build`, `swift test` and `swift run` do what you would expect, mirroring Xcode's commands.
+* `docker-compose up` and `docker-compose down` will launch or remove a defined stack of linked services.
+* `docker build` and `docker run` build and run a single container image, so we won't be using those very much, but `docker exec` performs a command inside an already-running container, so that'll be our primary method of interacting with Docker during development.
 
 ### Creating a project folder
 
@@ -33,11 +38,11 @@ Create an empty project folder somewhere, and open up a terminal window at that 
 
 ### Defining our Vapor container image
 
-In Docker, a *container* is a running instance of an *image*. When building an image, Docker uses a step-by-step recipe called a Dockerfile. It takes another image as a starting point, then runs the commands in that file to produce your new image. In development, your Dockerfile will simply define the base image and install required dependencies.
+In Docker, a *container* is a running instance of an *image*. When building an image, Docker uses a step-by-step recipe called a [Dockerfile][docker-dockerfile-ref]. It takes another image as a starting point, then runs the commands in that file to produce your new image. In development, your Dockerfile will simply define the base image and install required dependencies.
 
 To keep it separate from your production Dockerfile later on, let's call it `Dockerfile-dev`.
 
-```
+```Dockerfile
 FROM swift:4.1
 RUN apt-get -qq update && apt-get -q -y install \
   libmysqlclient-dev \
@@ -54,9 +59,9 @@ Note that we are explicitly **not** building our Swift project in this Dockerfil
 
 Now we need to tell Docker that we're going to build up a stack of services: one built on the fly from our Dockerfile, and then a pre-built database and memory cache, as you will recall.
 
-To do this we define a Compose file, which is in YAML format. I don't tend to store production Compose files within a Vapor project, so I just call mine `docker-compose.yml`.
+To do this we define a [Compose file][docker-compose-ref], which is in YAML format. I don't tend to store production Compose files within a Vapor project, so I just call mine `docker-compose.yml`.
 
-```
+```YAML
 version: "3.3"
 services:
   api:
@@ -94,11 +99,11 @@ This simple Compose file defines the three services, named `api`, `db` and `redi
 
 `db` is a service that pulls the latest version of MySQL 5, and runs it with some environment variables set. The MySQL container knows to look for these environment variables, and sets its primary user, password and database accordingly.
 
-`api` is the only one that contains a `build` key. That means that instead of pulling a pre-built image, Docker will build it using the specified Dockerfile, and name it `api:dev`. It also passes some environment variables, that our Vapor app will use to find MySQL and Redis. You'll note it opens port `8080` so you can interact with it from your browser. Let's leave the other configuration keys for the moment; I'll explain shortly.
+`api` is the only one that contains a `build` key. That means that instead of pulling a pre-built image, Docker will build it using the specified Dockerfile, and name it `api:dev`. It also passes some environment variables, that our Vapor app will use to find MySQL and Redis. You'll note it opens port 8080 so you can interact with it from your browser. Let's leave the other configuration keys for the moment; I'll explain shortly.
 
 Let's do a trial run. From inside your project directory, run:
 
-```bash
+```Shell
 docker-compose up --build
 ```
 
@@ -112,7 +117,7 @@ Great! Now what? Well, nothing, because we don't have a Vapor application yet.
 
 Take another look at our Compose file, in particular these parts of the definition of the Vapor `api` service:
 
-```
+```YAML
 ports:
   - "8080:8080"
 volumes:
@@ -137,7 +142,7 @@ If you still have your Docker stack running (see previous section), your `api` c
 
 First, let's find out the random identifier that Docker assigned. Enter `docker ps` to see a list of running containers. It should look like this:
 
-```
+```Shell
 $ docker ps
 CONTAINER ID        IMAGE               COMMAND
 9629527e3434        api:dev             "bash"
@@ -147,7 +152,7 @@ CONTAINER ID        IMAGE               COMMAND
 
 The one named `api:dev` is the one we want. We use the `docker attach` command to attach to it (press return twice after the command).
 
-```
+```Shell
 $ docker attach 9629
 root@9629527e3434:/app#
 ```
@@ -162,7 +167,7 @@ You'll need, of course, a Vapor project. For the purposes of proceeding with thi
 
 This should be your `Package.swift`:
 
-```
+```Swift
 // swift-tools-version:4.0
 import PackageDescription
 
@@ -179,7 +184,7 @@ let package = Package(
 
 And this should be `Sources/Run/main.swift`:
 
-```
+```Swift
 import Vapor
 
 var services = Services.default()
@@ -196,13 +201,15 @@ try Application(
 ).run()
 ```
 
+> This is a very minimal Vapor 3 example that responds with `Hello Docker` to a `GET` request. No, it doesn't even use MySQL or Redis. A future version of this tutorial will do so.
+
 When you're doing this for real, if you've installed Vapor's Toolbox, you can use [that method][toolbox-project-new] from your Mac, or you can use your new Swift container to do it! Run the below from the bash prompt you just attached to:
 
-```bash
+```Shell
 swift package init --type executable
 ```
 
-Importantly, when you want to connect to your external MySQL and Redis services, you should use the values of the environment vars that you set in the Compose file earlier on: 	    `$MYSQL_HOST`, `$MYSQL_USER`, `$MYSQL_PASSWORD`, `$MYSQL_DATABASE`, `$REDIS_HOST`. By using environment variables in place of hard-coded configuration values, you will be able to make changes to your service stack without needing to rebuild your Vapor app image.
+Importantly, when you want to connect to your external MySQL and Redis services, you should use the values of the environment vars that you set in the Compose file earlier on: `$MYSQL_HOST`, `$MYSQL_USER`, `$MYSQL_PASSWORD`, `$MYSQL_DATABASE`, `$REDIS_HOST`. By using environment variables in place of hard-coded configuration values, you will be able to make changes to your service stack without needing to rebuild your Vapor app image.
 
 ### Building and running your Vapor app
 
@@ -225,12 +232,12 @@ swift run Run serve -b 0.0.0.0
 
 If you want, you can write a file of SQL commands that will be executed when the MySQL container is launched. Add the following key to the `db` service in your Compose file:
 
-```
+```YAML
 volumes:
   - ./fixtures.sql:/docker-entrypoint-initdb.d/init.sql
 ```
 
-This will mount the file `fixtures.sql` in your local directory into the MySQL container in a special location that MySQL knows to look for.
+This will mount the file `fixtures.sql` in your local directory into the MySQL container in a special location that [MySQL knows to look for][docker-hub-mysql].
 
 ### Summary of development stage
 
@@ -238,7 +245,7 @@ By now, you should be all set up to build your Vapor application.
 
 We defined a development environment with one Swift container, a MySQL container and a Redis container, all linked together in a stack which can be set up or torn down on demand.
 
-We mounted our project inside the Swift container, then attached our terminal and used Swift on Linux to build, test and run our project. We used a macOS code editor to write our program and a web browser or REST client to interact with the running app.
+We mounted our project inside the Swift container, then attached our terminal and used Swift on Linux to build, test and run our project. We used a macOS code editor to write our program and a web browser or [REST client][paw-home] to interact with the running app.
 
 This foundation should be enough for you to go ahead and build your application. Next step: deploy it!
 
@@ -250,11 +257,11 @@ In development, we had an empty Swift container in which we mounted our project 
 
 ### Building the production Vapor image
 
-A central tenet of containerisation is that your production image should be as small as possible. When we build our Vapor project, we're going to end up with lots of unnecessary files in our `.build` folder. So, we're going to use a Docker feature called *multi-stage builds*. Essentially, it lets you create an image to build in, and then pull only a few files from that into a brand new image.
+A central tenet of containerisation is that your production image should be as small as possible. When we build our Vapor project, we're going to end up with lots of unnecessary files in our `.build` folder. So, we're going to use a Docker feature called [*multi-stage builds*][docker-multi-stage-builds]. Essentially, it lets you create an image to build in, and then pull only a few files from that into a brand new image.
 
 Make a new file called just `Dockerfile`. This is your production image build recipe.
 
-```
+```Dockerfile
 # Build image
 FROM swift:4.1 as builder
 RUN apt-get -qq update && apt-get -q -y install \
@@ -286,13 +293,13 @@ The second section pulls a clean Ubuntu 16.04 image, which is only about 200MB, 
 
 We've declared our production Dockerfile, now we just need to tell Docker to build it. Docker images are tagged as `name:version`. For example, the first version of your awesome app could be tagged `myawesomeapp:1.0.0`. Let's build and tag our app:
 
-```
+```Shell
 docker build -t myawesomeapp:1.0.0 .
 ```
 
 Done. We now have an entirely self-contained image of a Vapor app that we can run at will. Let's do it:
 
-```
+```Shell
 docker run -p 8080:8080 myawesomeapp:1.0.0
 ```
 
@@ -302,7 +309,7 @@ You should now be able to reach your running app at `localhost:8080`. Note that 
 
 To give you an indication of how our production image slots into a Compose file, see below. The `api` service no longer has a build step, it simply pulls an image like `db` and `redis` do, opens a port, and configures environment variables.
 
-```
+```YAML
 version: "3.3"
 services:
   api:
@@ -327,11 +334,11 @@ services:
 
 If you want to save this file, don't overwrite the development one, save it in a different folder or give it a different name, say `docker-compose-prod.yml`. You can test it out with:
 
-```
+```Shell
 docker-compose -f docker-compose-prod.yml up --build
 ```
 
-Docker's built-in multi-node container scheduler, Docker Swarm, uses Compose files with the same syntax we are already used to, with additional configuration options for replication, resource limits and restart policy. I won't go into further detail here, because Docker's Swarm documentation is comprehensive.
+Docker's built-in multi-node container scheduler, Docker Swarm, uses Compose files with the same syntax we are already used to, with [additional configuration options][docker-compose-deploy] for replication, resource limits and restart policy. I won't go into further detail here, because Docker's Swarm documentation is comprehensive.
 
 The final part I have not covered is using a remote Docker repository. Docker has its own, Docker Hub, but there are other options too, including self-hosting. It's a bit like a GitHub for Docker images. You push a public or private image to a Docker repository, and then you can pull that image from another computer. This is pretty much required for production deployment.
 
@@ -345,7 +352,14 @@ That was a fairly comprehensive look at Docker throughout the application develo
 
 Thanks for reading!
 
+[docker-compose-ref]: https://docs.docker.com/compose/compose-file/
+[docker-compose-deploy]: https://docs.docker.com/compose/compose-file/#deploy
+[docker-dockerfile-ref]: https://docs.docker.com/engine/reference/builder/
 [docker-home]: https://www.docker.com
+[docker-hub-mysql]: https://hub.docker.com/_/mysql/
+[docker-multi-stage-builds]: https://docs.docker.com/develop/develop-images/multistage-build/
+[docker-swarm-overview]: https://docs.docker.com/engine/swarm/
+[paw-home]: https://paw.cloud
 [toolbox-project-new]: https://docs.vapor.codes/3.0/getting-started/hello-world/
 [vapor-discord]: http://vapor.team
 [vapor-home]: https://vapor.codes
