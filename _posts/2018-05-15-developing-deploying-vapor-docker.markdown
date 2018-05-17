@@ -70,7 +70,7 @@ services:
       dockerfile: Dockerfile-dev
     image: api:dev
     environment:
-	    MYSQL_HOST: db
+      MYSQL_HOST: db
       MYSQL_USER: test
       MYSQL_PASSWORD: test
       MYSQL_DATABASE: test
