@@ -86,6 +86,7 @@ services:
   db:
     image: mysql:5
     environment:
+      MYSQL_ROOT_PASSWORD: root
       MYSQL_USER: test
       MYSQL_PASSWORD: test
       MYSQL_DATABASE: test
@@ -168,7 +169,7 @@ You'll need, of course, a Vapor project. For the purposes of proceeding with thi
 This should be your `Package.swift`:
 
 ```swift
-// swift-tools-version:4.0
+// swift-tools-version:4.1
 import PackageDescription
 
 let package = Package(
@@ -177,7 +178,7 @@ let package = Package(
     .package(url: "https://github.com/vapor/vapor.git", from: "3.0.0"),
   ],
   targets: [
-    .target(name: "app", dependencies: ["Vapor"]),
+    .target(name: "Run", dependencies: ["Vapor"]),
   ]
 )
 ```
@@ -276,7 +277,8 @@ RUN swift build -c release && mv `swift build -c release --show-bin-path` /build
 FROM ubuntu:16.04
 RUN apt-get -qq update && apt-get install -y \
   libicu55 libxml2 libbsd0 libcurl3 libatomic1 \
-  libmysqlclient20 tzdata \
+  tzdata \
+  libmysqlclient20 \
   && rm -r /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=builder /build/bin/Run .
@@ -325,6 +327,7 @@ services:
   db:
     image: mysql:5
     environment:
+      MYSQL_ROOT_PASSWORD: topsecretpw
       MYSQL_USER: prod_user
       MYSQL_PASSWORD: secretpw
       MYSQL_DATABASE: prod
