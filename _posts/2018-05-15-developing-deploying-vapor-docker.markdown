@@ -45,7 +45,7 @@ To keep it separate from your production Dockerfile later on, let's call it `Doc
 ```docker
 FROM swift:4.1
 RUN apt-get -qq update && apt-get -q -y install \
-  libmysqlclient-dev \
+  tzdata \
   && rm -r /var/lib/apt/lists/*
 ```
 
@@ -222,7 +222,7 @@ The equivalent of `Command-B` in Xcode is simply `swift build`. Your first build
 
 `swift run` is the equivalent of Xcode's `Command-R`, and will launch your Vapor application. Press `Ctrl-C` to stop it again. Since we bound port 8080 of the container to port 8080 of our local computer, we will be able to reach our running Vapor application at `http://localhost:8080` using a browser or REST client.
 
-> Note: as of this writing, Vapor does not automatically accept external connections. So to run your app you will actually need to use the full command below, assuming your binary is named `Run` (if you used the SPM project method, it'll be called `app`):
+> Note: Vapor is automatically configured to accept external connections. So to run your app you will actually need to use the full command below, assuming your binary is named `Run` (if you used the SPM project method, it'll be called `app`):
 ```
 swift run Run serve -b 0.0.0.0
 ```
@@ -266,7 +266,7 @@ Make a new file called just `Dockerfile`. This is your production image build re
 # Build image
 FROM swift:4.1 as builder
 RUN apt-get -qq update && apt-get -q -y install \
-  libmysqlclient-dev \
+  tzdata \
   && rm -r /var/lib/apt/lists/*
 WORKDIR /app
 COPY . .
@@ -278,7 +278,6 @@ FROM ubuntu:16.04
 RUN apt-get -qq update && apt-get install -y \
   libicu55 libxml2 libbsd0 libcurl3 libatomic1 \
   tzdata \
-  libmysqlclient20 \
   && rm -r /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=builder /build/bin/Run .
