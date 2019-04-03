@@ -1,8 +1,8 @@
-title: bygri
+title: Toby Griffin
 description: >-
-  Tech by bygri
+  Tech articles by bygri
 baseurl: ""
-url: "https://bygri.github.io"
+url: "https://www.tobygriffin.dev"
 github_username:  bygri
 google_analytics: UA-113082283-1
 
@@ -14,6 +14,6 @@ kramdown:
   syntax_highlighter: rouge
 
 exclude:
-  - Dockerfile-dev
+  - rundev.sh
   - Gemfile
   - Gemfile.lock
